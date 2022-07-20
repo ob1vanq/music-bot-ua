@@ -1,9 +1,24 @@
+import json
 import logging
 from dataclasses import dataclass
 from typing import Union
 
 from environs import Env
 from sqlalchemy.engine import URL
+
+
+class pay:
+    def __init__(self):
+        with open('app/data/details.json', 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            self.paypal = data['paypal']
+            self.card = data['card']
+
+
+@dataclass
+class Payment:
+    paypal: str
+    card: str
 
 
 @dataclass
@@ -53,6 +68,7 @@ class Config:
     db: DbConfig
     redis: RedisConfig
     misc: Miscellaneous
+    payment: Payment
 
     @classmethod
     def from_env(cls, path: Union[str, None] = None) -> 'Config':
@@ -82,6 +98,10 @@ class Config:
                 photo_channel_chat_id=env.int('PHOTO_CHANNEL_CHAT_ID'),
                 logo='app/data/logo.png',
                 sub_price=env.int('SUBSCRIPTION_PRICE')
+            ),
+            payment=Payment(
+                paypal=pay().paypal,
+                card=pay().card
             )
 
         )
