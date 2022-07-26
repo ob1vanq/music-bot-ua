@@ -8,11 +8,21 @@ from sqlalchemy.engine import URL
 
 
 class pay:
-    def __init__(self):
-        with open('app/data/details.json', 'r', encoding='utf-8') as file:
+
+    def get_paypal(self):
+        with open('app/handlers/data/details.json', 'r', encoding='utf-8') as file:
             data = json.load(file)
-            self.paypal = data['paypal']
-            self.card = data['card']
+        return data['paypal']
+
+    def get_card(self):
+        with open('app/handlers/data/details.json', 'r', encoding='utf-8') as file:
+            data = json.load(file)
+        return data['card']
+
+    @property
+    def data(self):
+        with open('app/handlers/data/details.json', 'r', encoding='utf-8') as file:
+            return json.load(file)
 
 
 @dataclass
@@ -24,7 +34,7 @@ class Payment:
 @dataclass
 class TgBot:
     token: str
-    admin_ids: tuple[int, ...]
+    admin_ids: tuple[int]
     provider_token: str
 
 
@@ -59,6 +69,9 @@ class Miscellaneous:
     log_level: int
     post_channel_chat_id: int
     photo_channel_chat_id: int
+    sub_channel_chat_id: int
+    sub_channel_url: str
+    telegraph_url: str
     sub_price: int
     logo: str
 
@@ -96,12 +109,15 @@ class Config:
                 log_level=env.log_level('LOG_LEVEL', logging.INFO),
                 post_channel_chat_id=env.int('POST_CHANNEL_CHAT_ID'),
                 photo_channel_chat_id=env.int('PHOTO_CHANNEL_CHAT_ID'),
-                logo='app/data/logo.png',
-                sub_price=env.int('SUBSCRIPTION_PRICE')
+                logo='app/handlers/data/logo.png',
+                sub_price=env.int('SUBSCRIPTION_PRICE'),
+                sub_channel_chat_id=env.int('SUB_CHANNEL_ID'),
+                sub_channel_url=env.str('SUB_CHANNEL_URL'),
+                telegraph_url=env.str('TELEGRAPH_URL')
             ),
             payment=Payment(
-                paypal=pay().paypal,
-                card=pay().card
+                paypal=pay().get_paypal(),
+                card=pay().get_card()
             )
 
         )

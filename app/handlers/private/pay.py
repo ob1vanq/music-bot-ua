@@ -26,7 +26,7 @@ async def chose_track(msg: Message, deep_link: re.Match,  track_db: TrackRepo, s
                          reply_markup=pay_tracks_kb(tracks))
     else:
         await msg.answer(
-            'Оплатіть вартість треку, або виберітб потрібний якщо у вас є "<b>Підписка</b> 💸"',
+            'Оплатіть вартість треку, або виберіть потрібний якщо у вас є "<b>Підписка</b> 💸"',
             reply_markup=pay_tracks_kb(tracks)
         )
 

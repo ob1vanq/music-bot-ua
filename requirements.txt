@@ -38,3 +38,6 @@ TgCrypto==1.2.3
 typing_extensions==4.2.0
 ujson==5.2.0
 yarl==1.7.2
+APScheduler==3.9.1
+Pillow==9.2.0
+

@@ -9,8 +9,8 @@ from app.handlers.private import (
 
 
 def setup(dp: Dispatcher):
-    sub.setup(dp)
     pay.setup(dp)
+    sub.setup(dp)
     start.setup(dp)
     post.setup(dp)
     admin.setup(dp)

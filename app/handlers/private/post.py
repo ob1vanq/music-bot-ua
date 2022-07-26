@@ -27,7 +27,7 @@ async def start_post(msg: Message, state: FSMContext):
         'Щоб розмістити трек в спільноті, для початку надішліть нам '
         '<b>рік випуску</b> треку/альбому (наприклад 1960)'
     )
-    await msg.answer(text)
+    await msg.answer(text, reply_markup=cancel_kb)
     await state.update_data(tracks=[], exclusive=False)
     await PostSG.Year.set()
 
@@ -65,8 +65,8 @@ async def add_and_check_photo(msg: Message, state: FSMContext, config: Config):
         await msg.answer(text, reply_markup=cancel_kb)
         await PostSG.Audio.set()
     else:
-        height, width = check_photo
-        await msg.answer(f'Розміри фото мають бути 1000x1000 замість {height}x{width}')
+        height, width = msg.photo[-1].height, msg.photo[-1].width
+        await msg.answer(f'Розміри фото мають бути 1000x1000 замість {height}x{width}', reply_markup=cancel_kb)
 
 
 async def add_year(msg: Message, state: FSMContext):
@@ -88,7 +88,7 @@ async def add_new_type(msg: Message, state: FSMContext):
         text = (
             'Для продовження завантажте <b>обкладинку</b> для релізу\n(розмір картинки 1000x1000 пікселів)'
         )
-        await msg.answer(text)
+        await msg.answer(text, reply_markup=cancel_kb)
         await PostSG.Wrapper.set()
 
 
@@ -184,10 +184,7 @@ async def _extend_new_track(title: str, file_id: str, state: FSMContext, track_d
 async def _check_photo_size(msg: Message):
     width = msg.photo[-1].width
     height = msg.photo[-1].height
-    if width >= 500 and height >= 500:
-        return True
-    else:
-        return height, width
+    return width >= 500 and height >= 500
 
 
 async def _send_preview_post(msg: Message, state: FSMContext):
@@ -224,10 +221,10 @@ async def _media(track_ids: list) -> MediaGroup:
 
 
 async def resolve_photo_file_id(msg: Message, state: FSMContext, config: Config):
-    n = str(len(os.listdir('app/data')))
+    n = str(len(os.listdir('app/handlers/data')))
 
     input_path = BytesIO()
-    output_path = 'app/data/output' + n + '.png'
+    output_path = 'app/handlers/data/output' + n + '.png'
     resize_logo = BytesIO()
     watermark_path = config.misc.logo
 
@@ -236,12 +233,11 @@ async def resolve_photo_file_id(msg: Message, state: FSMContext, config: Config)
     logo_width, logo_height = logo.size
     photo_width = msg.photo[-1].width
     photo_height = msg.photo[-1].height
-    new_width = int(0.6*photo_width/1.4)
+    new_width = int(photo_width/3)
     new_height = int(new_width*logo_height/logo_width)
     logo = logo.resize((new_width, new_height), Image.ANTIALIAS)
     logo.save(resize_logo, 'PNG')
-
-    position = (int(photo_width-new_width), int(0.8*photo_height))
+    position = (0, int(photo_height-new_height))
 
     await msg.photo[-1].download(destination_file=input_path)
     watermark_with_transparency(input_path, output_path, resize_logo, position=position)
@@ -254,8 +250,8 @@ async def resolve_photo_file_id(msg: Message, state: FSMContext, config: Config)
 
 def watermark_with_transparency(input_image_path, output_image_path,
                                 watermark_image_path, position):
-    base_image = Image.open(input_image_path)
-    watermark = Image.open(watermark_image_path)
+    base_image = Image.open(input_image_path).convert('RGBA')
+    watermark = Image.open(watermark_image_path).convert('RGBA')
     width, height = base_image.size
 
     transparent = Image.new('RGBA', (width, height), (0, 0, 0, 0))
