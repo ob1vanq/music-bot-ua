@@ -6,3 +6,5 @@ class AdminSG(StatesGroup):
     Edit = State()
     Title = State()
     Price = State()
+
+    Settings = State()

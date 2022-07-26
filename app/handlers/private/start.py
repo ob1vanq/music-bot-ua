@@ -1,9 +1,8 @@
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.dispatcher.filters import Command, CommandStart
+from aiogram.types import Message, CallbackQuery, ChatJoinRequest
 
-from app.filters.admin import IsAdminFilter
 from app.keyboards.reply.post import menu_kb
 from app.services.repos import UserRepo, SubscriptRepo
 
@@ -25,17 +24,24 @@ async def cancel_state(msg: Message, state: FSMContext, user_db: UserRepo, sub_d
     await command_start(msg, user_db, sub_db)
 
 
-async def admin_start(msg: Message):
-    await msg.answer('👋 Привіт. Ви є адміністратором. Вам будуть надходити треки для модерації')
-
-
-async def cancel(call: CallbackQuery, user_db: UserRepo, sub_db: SubscriptRepo):
+async def cancel(call: CallbackQuery):
     await call.message.delete_reply_markup()
     await call.message.answer('Пост скасовано')
 
 
 def setup(dp: Dispatcher):
-    # dp.register_message_handler(admin_start, Command('start'), IsAdminFilter(), state='*')
+    dp.register_message_handler(command_start, CommandStart(), state='*')
     dp.callback_query_handler(cancel, text='cancel', state='*')
-    dp.register_message_handler(command_start, Command('start'), state='*')
     dp.register_message_handler(cancel_state, text='❌ Відмінити', state='*')
+    dp.register_chat_join_request_handler(process_chat_join_request, state='*')
+
+
+async def process_chat_join_request(cjr: ChatJoinRequest, sub_db: SubscriptRepo):
+    user_id = cjr.from_user.id
+    sub = await sub_db.get_sub_by_user_id(user_id=user_id)
+    if sub.status:
+        await cjr.approve()
+        await cjr.bot.send_message(chat_id=user_id, text='Вас додано до чату з платним контентом')
+    else:
+        await cjr.decline()
+        await cjr.bot.send_message(chat_id=user_id, text='Доступ до цього каналу мають тільки користувачи з підпискою')

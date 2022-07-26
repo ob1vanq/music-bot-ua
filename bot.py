@@ -1,6 +1,6 @@
 import asyncio
-import concurrent.futures
 import logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -9,10 +9,11 @@ from aiogram.types import AllowedUpdates, ParseMode
 
 from app import filters, handlers, middlewares
 from app.config import Config
-from app.handlers.private.sub import check_subs
 from app.misc.set_bot_commands import set_default_commands
 from app.misc.notify_admins import on_startup_notify
+from app.misc.utils import check_subs
 from app.services import create_db_engine_and_session_pool
+from app.services.repos import SubscriptRepo
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +35,8 @@ async def main():
 
     allowed_updates: list[str] = AllowedUpdates.MESSAGE + AllowedUpdates.CALLBACK_QUERY + \
                                  AllowedUpdates.MY_CHAT_MEMBER +AllowedUpdates.EDITED_MESSAGE + \
-                                 AllowedUpdates.PRE_CHECKOUT_QUERY + AllowedUpdates.SHIPPING_QUERY
+                                 AllowedUpdates.CHAT_JOIN_REQUEST
+
     environments = dict(config=config)
 
     middlewares.setup(dp, sqlalchemy_session_pool, environments)
@@ -43,6 +45,11 @@ async def main():
 
     await set_default_commands(bot)
     await on_startup_notify(bot, config.bot.admin_ids)
+
+    scheduler = AsyncIOScheduler()
+    kwargs = dict(bot=bot, sub_db=SubscriptRepo(sqlalchemy_session_pool), config=config)
+    scheduler.add_job(func=check_subs, trigger='interval', seconds=86000, kwargs=kwargs)
+    scheduler.start()
 
     try:
         await dp.skip_updates()

@@ -3,10 +3,11 @@ from io import BytesIO
 
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
-from aiogram.types import CallbackQuery, InputMediaAudio, MediaGroup, Message
-from aiogram.utils.markdown import hide_link
+from aiogram.dispatcher.filters import Command
+from aiogram.types import CallbackQuery, InputMediaAudio, MediaGroup, Message, ContentTypes, InputFile
 
-from app.config import Config
+from app.config import Config, pay
+from app.filters.admin import IsAdminFilter
 from app.keyboards.inline.post import admin_cb, music_kb, price_cb, admin_kb
 from app.keyboards.inline.tracks import tracks_kb, edit_track, track_cb, back_track_cb, back_menu_cb, set_title, \
     set_price
@@ -33,6 +34,11 @@ async def public_in_channel(call: CallbackQuery, callback_data: dict,
     if media:
         await call.bot.send_media_group(
             chat_id=config.misc.post_channel_chat_id, media=media)
+    else:
+        media = await _exclusiv_media(tracks)
+        await call.bot.send_media_group(
+            chat_id=config.misc.sub_channel_chat_id, media=media
+        )
     await call.message.delete_reply_markup()
     await call.message.answer(f'<a href="{send_msg.url}">Пост</a> розміщено')
 
@@ -129,6 +135,21 @@ async def _back_to_menu(call: CallbackQuery, callback_data: dict, track_db: Trac
     await call.message.edit_reply_markup(admin_kb(post_id=post_id, is_free=is_free))
 
 
+async def change_settings(msg: Message):
+    data = pay().data
+    await msg.bot.send_document(chat_id=msg.from_user.id, document=InputFile('app/handlers/data/details.json', 'settings.json'))
+    await msg.answer('Надішліть файл у форматі <b>.json</b> із встановленими налаштуваннями\n\n'
+                     f'Поточні параметри:\n<code>{data}</code>')
+    await AdminSG.Settings.set()
+
+
+async def save_settings(msg: Message, state: FSMContext):
+    settings = await msg.document.download(destination='app/handlers/data/details.json')
+    data = pay().data
+    await msg.answer(f'Параметри встановленні успішно:\n<code>{data}</code>')
+    await state.finish()
+
+
 def setup(dp: Dispatcher):
     dp.register_callback_query_handler(public_in_channel, admin_cb.filter(), state='*')
     dp.register_callback_query_handler(edit_tracks, price_cb.filter(), state='*')
@@ -142,6 +163,10 @@ def setup(dp: Dispatcher):
     dp.register_callback_query_handler(edit_tracks, back_track_cb.filter(), state=AdminSG.Edit)
     dp.register_callback_query_handler(_back_to_menu, back_menu_cb.filter(), state=AdminSG.Track)
 
+    dp.register_message_handler(change_settings, Command('admin'), IsAdminFilter(), state='*')
+    dp.register_message_handler(save_settings, state=AdminSG.Settings, content_types=ContentTypes.DOCUMENT)
+
+
 
 async def _resolve_post_text(post: Post, tracks: list[Track]) -> str:
     tracks_str = ''
@@ -154,6 +179,14 @@ async def _resolve_post_text(post: Post, tracks: list[Track]) -> str:
         f'Рік випуску: {post.year}\n'
         f'Тип: #{post.type}\n\n' + tracks_str
     )
+
+
+async def _exclusiv_media(tracks: list[Track]) -> MediaGroup | bool:
+    media = []
+    for track in tracks:
+        if track.price > 0:
+            media.append(InputMediaAudio(track.file_id))
+    return MediaGroup(media)
 
 
 async def _media(tracks: list[Track]) -> MediaGroup | bool:
