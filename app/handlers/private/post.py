@@ -37,6 +37,7 @@ async def add_one_track(msg: Message, state: FSMContext, track_db: TrackRepo, gr
     bitrate = await _bitrate(msg)
     if not title:
         await msg.answer('Заборонений символ "_" у назві файлу')
+        return
     elif bitrate < 320:
         await msg.answer(f'Якість треку має бути більшою за 320 Kbps замість {bitrate} Kbps')
         return
@@ -163,7 +164,7 @@ async def _get_track_param(msg: Message):
     performer = msg.audio.performer
     file_name = msg.audio.file_name
     if title and performer:
-        return f'{title} - {performer}'
+        return f'{performer} - {title}'
     elif '_' in file_name:
         return False
     else:
@@ -262,4 +263,7 @@ def watermark_with_transparency(input_image_path, output_image_path,
 
 async def _bitrate(msg: Message):
     file_size = msg.audio.file_size*0.008
-    return int(file_size/msg.audio.duration)
+    if msg.audio.duration == 0:
+        return 320
+    else:
+        return int(file_size/msg.audio.duration)

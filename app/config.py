@@ -35,7 +35,6 @@ class Payment:
 class TgBot:
     token: str
     admin_ids: tuple[int]
-    provider_token: str
 
 
 @dataclass
@@ -91,8 +90,7 @@ class Config:
         return Config(
             bot=TgBot(
                 token=env.str('BOT_TOKEN'),
-                admin_ids=tuple(map(int, env.list('ADMIN_IDS'))),
-                provider_token=env.str('PROVIDER_TOKEN')
+                admin_ids=tuple(map(int, env.list('ADMIN_IDS')))
             ),
             db=DbConfig(
                 host=env.str('DB_HOST', 'localhost'),

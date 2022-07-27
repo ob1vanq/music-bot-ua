@@ -167,7 +167,6 @@ def setup(dp: Dispatcher):
     dp.register_message_handler(save_settings, state=AdminSG.Settings, content_types=ContentTypes.DOCUMENT)
 
 
-
 async def _resolve_post_text(post: Post, tracks: list[Track]) -> str:
     tracks_str = ''
     for track in tracks:

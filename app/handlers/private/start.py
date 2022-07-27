@@ -31,7 +31,7 @@ async def cancel(call: CallbackQuery):
 
 def setup(dp: Dispatcher):
     dp.register_message_handler(command_start, CommandStart(), state='*')
-    dp.callback_query_handler(cancel, text='cancel', state='*')
+    dp.register_callback_query_handler(cancel, text='cancel', state='*')
     dp.register_message_handler(cancel_state, text='❌ Відмінити', state='*')
     dp.register_chat_join_request_handler(process_chat_join_request, state='*')
 
