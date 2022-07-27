@@ -7,7 +7,7 @@ pay_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton('💳 Платіж за картою'),
-            KeyboardButton('💸 PayPal')
+            # KeyboardButton('💸 PayPal')
         ]
     ]
 )
